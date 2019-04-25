@@ -18,6 +18,17 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeArray;
 import com.facebook.react.bridge.WritableNativeMap;
 
+import java.util.Map;
+import java.io.ByteArrayOutputStream;
+
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.util.Base64;
+import android.net.Uri;
+import java.io.IOException;
+import java.io.FileNotFoundException;
+
 public class RNGalleryManagerModule extends ReactContextBaseJavaModule {
 
     public static final String RNGALLERY_MANAGER = "RNGalleryManager";
@@ -133,6 +144,31 @@ public class RNGalleryManagerModule extends ReactContextBaseJavaModule {
 
     }
 
+
+    private String makeConversion(String uri, int width, int height)
+    {
+        Bitmap bitmap=null;
+        try
+        {
+        bitmap= MediaStore.Images.Media.getBitmap(reactContext.getContentResolver(), Uri.parse(uri));
+        }
+        catch (IOException e)
+        {
+        }
+
+
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+
+        if (width != 0 && height != 0)
+            bitmap = Bitmap.createScaledBitmap(bitmap, width, height, false);
+        else
+            bitmap = Bitmap.createBitmap(bitmap);
+
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+        byte[] byteArray = byteArrayOutputStream.toByteArray();
+        return Base64.encodeToString(byteArray, Base64.DEFAULT);
+    }
+
     private WritableMap getAsset(Cursor gallery) {
         WritableMap asset = new WritableNativeMap();
         int mediaType = gallery.getInt(gallery.getColumnIndex(MediaStore.Files.FileColumns.MEDIA_TYPE));
@@ -153,7 +189,7 @@ public class RNGalleryManagerModule extends ReactContextBaseJavaModule {
         asset.putString("filename", fileName);
         asset.putDouble("id", id);
         asset.putString("uri", uri);
-        asset.putString("lowQualityUri", lowQualityUri);
+        asset.putString("lowQualityUri", "data:image/png;base64,"+makeConversion(lowQualityUri,200,200));
 
         if (mediaType == MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE) {
             asset.putDouble("duration", 0);
